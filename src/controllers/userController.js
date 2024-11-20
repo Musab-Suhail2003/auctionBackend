@@ -1,4 +1,4 @@
-const UserRepository = require('../models/userModel.js');
+const usermodel = require('../models/userModel.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const config = require('../../config/config');
@@ -8,21 +8,22 @@ class UserController {
     try {
       const { email, user_name, password } = req.body;
       // Check if user already exists
-      const existingUser = await UserRepository.findByEmail(email);
+      const existingUser = await usermodel.findByEmail(email);
 
       if (existingUser) {
+        console.log(`${existingUser.email}`);
         return res.status(400).json({ error: 'Email already registered' });
       }
-
       // Create new user
-      const user = await UserModel.create({
+      const user = await usermodel.create({
         email,
         user_name,
-        password,
+        password
       });
+      console.log("before token generation");
 
       // Generate JWT token
-      const token = jwt.sign({userId: user_id}, config.jwtSecret, { expiresIn: '24h' });
+      const token = jwt.sign({userId: user.user_id}, config.jwtSecret, { expiresIn: '24h' });
 
 
       res.status(201).json({
@@ -31,6 +32,8 @@ class UserController {
           user_id: user.user_id,
           email: user.email,
           user_name: user.user_name,
+          verification: user.verification,
+          wallet: user.wallet
         },
         token
       });
@@ -43,21 +46,25 @@ class UserController {
   static async login(req, res) {
     try {
       const { email, password } = req.body;
-
+      
       // Find user by email
-      const user = await UserRepository.findByEmail(email);
+      const user = await usermodel.findByEmail(email);
+      
+      console.log(user.email + " " + user.pass);
+      
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
-
+      
       // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.pass);
+     // const isValidPassword = await bcrypt.compare(password, user.pass);
+      const isValidPassword = password == user.pass
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       // Generate token
-      const token = jwt.sign({ userId: user.user_id }, config.jwtSecret, { expiresIn: '244h' });
+      const token = jwt.sign({ userId: user.user_id }, config.jwtSecret, { expiresIn: '24h' });
 
       res.json({
         message: 'Login successful',
@@ -65,7 +72,9 @@ class UserController {
           user_id: user.user_id,
           email: user.email,
           user_name: user.user_name,
-          wallet_money: user.wallet
+          wallet: user.wallet,
+          verification: user.verification,
+
         },
         token
       });
@@ -77,7 +86,8 @@ class UserController {
 
   static async getProfile(req, res) {
     try {
-      const user = await UserModel.findById(req.user_id);
+      console.log(`before find by id ${req.params.user_id}`);
+      const user = await usermodel.findById(req.params.user_id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -86,7 +96,7 @@ class UserController {
         user_id: user.user_id,
         email: user.email,
         user_name: user.user_name,
-        wallet_money: user.wallet_money,
+        wallet: user.wallet,
         avg_rating: user.avg_rating,
         created_at: user.created_at
       });

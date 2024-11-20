@@ -22,6 +22,18 @@ class ItemController {
     }
   }
 
+  async getUserItems(req, res) {
+    try {
+      const item = await itemModel.findAllFromUser(req.params.id);
+      if (!item) {
+        return res.status(404).json({ message: 'Item not found' });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async createItem(req, res) {
     try {
       const item = await itemModel.create(req.body, req.body.images);

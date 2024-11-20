@@ -1,36 +1,38 @@
 const bcrypt = require('bcrypt');
 const pool = require('../../config/database');
 
-class UserRepository {
+class UserModel {
 
     async create(userData) {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
+        console.log("email " +userData.email + " username: " + userData.user_name + " password: " + userData.password + " \n hashed password:" + hashedPassword + "\n");
         return await pool.query(
-            'INSERT INTO users(user_name, email, pass) VALUES($1, $2, $3) RETURNING user_id, user_name, email, created_at',
+            'INSERT INTO users(user_name, pass, email) VALUES($1, $2, $3) RETURNING user_id, user_name, email, created_at',
             [userData.name, userData.email, hashedPassword]
         );
     }
 
     async findByEmail(email) {
-        return await pool.query(
-            `SELECT user_id, email, user_name, pass, wallet FROM users WHERE email = $1`,
-            email
-        );
+        return (await pool.query(
+            `SELECT user_id, email, user_name, pass, wallet, verification, created_at FROM users WHERE email = $1`,
+            [email]
+        )).rows[0];
     }
     
 
     async findById(user_id) {
-        return await pool.query(
-            `SELECT user_id, user_name, email, created_at FROM users WHERE user_id = $1`,
-            user_id
-        );
+        console.log(`inside findbyid ${user_id}`);
+        return (await pool.query(
+            `SELECT user_id, user_name, email, wallet, avg_rating, verification, created_at FROM users WHERE user_id = $1`,
+            [user_id]
+        )).rows[0];
     }
     
 
     async findByname(username) {
         return await pool.query(
-            `SELECT user_id, user_name, email, created_at FROM users WHERE user_name = $1`,
-            username
+            `SELECT user_id, user_name, email, wallet, avg_rating, created_at FROM users WHERE user_name = $1`,
+            [username]
         );
     }
 
@@ -89,4 +91,6 @@ class UserRepository {
     }
 }
 
-module.exports = UserRepository;
+const usermodel = new UserModel;
+
+module.exports = usermodel;

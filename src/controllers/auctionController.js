@@ -1,4 +1,4 @@
-const { AuctionModel } = require('../models/auctionModel');
+const AuctionModel = require('../models/auctionModel.js');
 
 class AuctionController {
   static async create(req, res) {
@@ -15,6 +15,7 @@ class AuctionController {
       const auctions = await AuctionModel.findActive();
       res.json(auctions);
     } catch (error) {
+      console.error(error);
       res.status(400).json({ error: error.message });
     }
   }

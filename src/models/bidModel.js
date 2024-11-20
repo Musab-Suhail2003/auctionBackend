@@ -1,10 +1,13 @@
 // models/bidModel.js
+const pool = require("../../config/database");
+
 class BidModel {
     static async create(bidData) {
       const { auction_id, buyer_id, bid_amount } = bidData;
+
       const query = `
-        INSERT INTO bids (auction_id, buyer_id, bid_amount, bid_time)
-        VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+        INSERT INTO bids (auction_id, buyer_id, bid_amount)
+        VALUES ($1, $2, $3)
         RETURNING *
       `;
       const result = await pool.query(query, [auction_id, buyer_id, bid_amount]);
