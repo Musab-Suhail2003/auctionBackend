@@ -6,10 +6,10 @@ class UserModel {
     async create(userData) {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         console.log("email " +userData.email + " username: " + userData.user_name + " password: " + userData.password + " \n hashed password:" + hashedPassword + "\n");
-        return await pool.query(
-            'INSERT INTO users(user_name, pass, email) VALUES($1, $2, $3) RETURNING user_id, user_name, email, created_at',
-            [userData.name, userData.email, hashedPassword]
-        );
+        return (await pool.query(
+            'INSERT INTO users(user_name, pass, email) VALUES($1, $2, $3) RETURNING user_id, user_name, email, created_at, verification',
+            [userData.user_name, hashedPassword, userData.email]
+        )).rows[0];
     }
 
     async findByEmail(email) {
@@ -84,13 +84,12 @@ class UserModel {
         return bcrypt.compare(password, user.password);
     }
 
-    static async updateWallet(userId, amount) {
-        const query = 'UPDATE users SET wallet = wallet + $1 WHERE user_id = $2 RETURNING *';
-        const result = await pool.query(query, [amount, userId]);
+    static async addwallet(user_id, amount) {
+        const query = 'UPDATE users SET wallet = wallet + $1 WHERE user_id = $2 RETURNING *;';
+        const result = await pool.query(query, [amount, user_id]);
         return result.rows[0];
     }
 }
 
-const usermodel = new UserModel;
 
-module.exports = usermodel;
+module.exports = new UserModel();

@@ -22,9 +22,34 @@ class ItemController {
     }
   }
 
+  async getCategoriesbyID(req, res) {
+    try {
+      const category = await itemModel.getCategorybyID(req.params.id);
+      if (!category) {
+        return res.status(404).json({ message: 'Categories not found' });
+      }
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+  async getAllCategories(req, res) {
+
+    console.log('inside get all category controller');
+    try {
+      const result = await itemModel.allCategories();
+      if (!result) {
+        return res.status(404).json({ message: 'Categories not found' });
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async getUserItems(req, res) {
     try {
-      const item = await itemModel.findAllFromUser(req.params.id);
+      const item = await itemModel.findAllFromUser(req.params.user_id);
       if (!item) {
         return res.status(404).json({ message: 'Item not found' });
       }

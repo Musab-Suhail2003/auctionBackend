@@ -3,7 +3,7 @@ const pool = require('../../config/database');
 class ItemModel {
   async findAll() {
     const result = await pool.query(
-      `SELECT i.*, c.category_name, array_agg(img.image_data) as images
+      `SELECT i.*, c.category_name, array_agg(img.image_id) as images
        FROM items i
        LEFT JOIN "Categories" c ON i.category_id = c.category_id
        LEFT JOIN images img ON i.item_id = img.item_id
@@ -11,13 +11,30 @@ class ItemModel {
     );
     return result.rows;
   }
+  
+  async allCategories(){
+    console.log('getting all categories');
+    const result = await pool.query(
+      `SELECT category_id, category_name from "Categories"`
+    );
+    return result.rows;
+  }
+
+  async getCategorybyID(id){
+    const result = await pool.query(
+      `SELECT * from "Categories" where category_id = $1`, [id]
+    );
+    return result.rows;
+  }
 
   async findAllFromUser(user_id) {
     const result = await pool.query(
-      `SELECT u.user_id, u.user_name, u.email, u.wallet, i.item_id, i.item_name, i.item_description
-      FROM users u
-      JOIN items i ON u.user_id = i.user_id
-      WHERE i.user_id = $1;`, [user_id]
+      `SELECT i.*, c.category_name, array_agg(img.image_url) as images
+       FROM items i
+       LEFT JOIN "Categories" c ON i.category_id = c.category_id
+       LEFT JOIN images img ON i.item_id = img.item_id
+       WHERE i.user_id = $1
+       GROUP BY i.item_id, c.category_name;`, [user_id]
     );
     return result.rows;
   }
@@ -66,7 +83,7 @@ class ItemModel {
         )).join(',');
         
         await client.query(
-          `INSERT INTO images (image_name, item_id, uploaded_at)
+          `INSERT INTO images (image_name, image_data, item_id)
            VALUES ${imageValues}`
         );
       }

@@ -1,45 +1,47 @@
-const usermodel = require('../models/userModel.js');
+const UserModel = require('../models/userModel.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const config = require('../../config/config');
+const pool = require('../../config/database.js');
+const verification = require('../middleware/verification.js');
 
 class UserController {
   static async register(req, res) {
     try {
       const { email, user_name, password } = req.body;
       // Check if user already exists
-      const existingUser = await usermodel.findByEmail(email);
+      const existingUser = await UserModel.findByEmail(email);
 
       if (existingUser) {
         console.log(`${existingUser.email}`);
         return res.status(400).json({ error: 'Email already registered' });
       }
       // Create new user
-      const user = await usermodel.create({
+      const u = await UserModel.create({
         email,
         user_name,
         password
       });
-      console.log("before token generation");
-
+      console.log(u);
+      
       // Generate JWT token
-      const token = jwt.sign({userId: user.user_id}, config.jwtSecret, { expiresIn: '24h' });
+      const token = jwt.sign({userId: u.user_id}, config.jwtSecret, { expiresIn: '24h' });
 
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'Registration successful',
         user: {
-          user_id: user.user_id,
-          email: user.email,
-          user_name: user.user_name,
-          verification: user.verification,
-          wallet: user.wallet
+          user_id: u.user_id,
+          email: u.email,
+          user_name: u.user_name,
+          created_at: u.created_at,
+          verification: u.verification
         },
         token
       });
     } catch (error) {
       console.error('Registration error:', error);
-      res.status(500).json({ error: 'Registration failed' });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -48,7 +50,7 @@ class UserController {
       const { email, password } = req.body;
       
       // Find user by email
-      const user = await usermodel.findByEmail(email);
+      const user = await UserModel.findByEmail(email);
       
       console.log(user.email + " " + user.pass);
       
@@ -57,8 +59,8 @@ class UserController {
       }
       
       // Verify password
-     // const isValidPassword = await bcrypt.compare(password, user.pass);
-      const isValidPassword = password == user.pass
+      const isValidPassword = await bcrypt.compare(password, user.pass);
+      //const isValidPassword = password == user.pass
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
@@ -87,7 +89,7 @@ class UserController {
   static async getProfile(req, res) {
     try {
       console.log(`before find by id ${req.params.user_id}`);
-      const user = await usermodel.findById(req.params.user_id);
+      const user = await UserModel.findById(req.params.user_id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -108,7 +110,7 @@ class UserController {
   static async updateProfile(req, res) {
     try {
       const { user_name, email } = req.body;
-      const updatedUser = await UserRepository.update(req.user.id, { user_name, email });
+      const updatedUser = await UserModel.update(req.user.id, { user_name, email });
       
       res.json({
         message: 'Profile updated successfully',
@@ -125,13 +127,13 @@ class UserController {
 
   static async updateWallet(req, res) {
     try {
-      const { amount } = req.body;
-      const updatedUser = await UserRepository.updateWallet(req.user.id, amount);
+      const { amount, user_id } = req.body;
+      console.log(amount + " " + user_id);
+      const query = 'UPDATE users SET wallet = wallet + $1 WHERE user_id = $2 RETURNING wallet, user_name, user_id;';
+      const result = await pool.query(query, [amount, user_id]);
       
-      res.json({
-        message: 'Wallet updated successfully',
-        wallet_money: updatedUser.wallet_money
-      });
+      res.json({...result.rows[0],
+        message: 'Wallet updated successfully'      });
     } catch (error) {
       res.status(500).json({ error: 'Failed to update wallet' });
     }

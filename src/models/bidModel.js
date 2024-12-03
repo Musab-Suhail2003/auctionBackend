@@ -4,7 +4,7 @@ const pool = require("../../config/database");
 class BidModel {
     static async create(bidData) {
       const { auction_id, buyer_id, bid_amount } = bidData;
-
+      
       const query = `
         INSERT INTO bids (auction_id, buyer_id, bid_amount)
         VALUES ($1, $2, $3)
@@ -20,9 +20,22 @@ class BidModel {
         FROM bids
         WHERE auction_id = $1
         ORDER BY bid_amount DESC
-        LIMIT 1
+        LIMIT 2
       `;
       const result = await pool.query(query, [auctionId]);
       return result.rows[0];
     }
-  }
+
+    static async getUsersBids(user_id) {
+      const query = `
+        SELECT *
+        FROM bids
+        WHERE buyer_id = $1
+        ORDER BY bid_amount DESC
+      `;
+      const result = await pool.query(query, [user_id]);
+      return result.rows;
+    }
+}
+
+module.exports = BidModel;
