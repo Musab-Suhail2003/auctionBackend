@@ -23,7 +23,7 @@ class BidModel {
         LIMIT 2
       `;
       const result = await pool.query(query, [auctionId]);
-      return result.rows[0];
+      return result.rows;
     }
 
     static async getUsersBids(user_id) {

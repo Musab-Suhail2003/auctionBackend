@@ -4,52 +4,58 @@ const ItemModel = require('../models/itemModels');
 
 class BidController {
   static async placeBid(req, res) {
-    const{user_id, item_id, bid_amount, auction_id} = req.body;
+    const { user_id, item_id, bid_amount, auction_id } = req.body;
+  
     try {
+      // Fetch user details
       const user = await UserRepository.findById(user_id);
       if (!user) {
         return res.status(404).json({ error: 'User not found.' });
       }
   
-      // Check if the user has enough money in their wallet
-      if (user['wallet'] < bid_amount) {
+      // Check wallet balance
+      if (user.wallet < bid_amount) {
         return res.status(400).json({ error: 'Insufficient wallet balance to place the bid.' });
       }
   
-      // Fetch the item and the current highest bid
+      // Fetch item details
       const item = await ItemModel.findById(item_id);
       if (!item) {
         return res.status(404).json({ error: 'Item not found.' });
       }
-      else if(item['user_id'] == user_id){
-        return res.status(400).json({ error: 'Seller Cannot Bid on his own auction.' });
+      if (item.user_id == user_id) {
+        return res.status(400).json({ error: 'Seller cannot bid on their own auction.' });
       }
-      else if(item['min_bid'] > bid_amount){
-        console.log(item['min_bid'] + " " + bid_amount);
-        return res.status(400).json({ error: 'Cannot bid below minimun' });
+      if (item.min_bid > bid_amount) {
+        return res.status(400).json({ error: 'Cannot bid below minimum bid.' });
       }
-      const currentHighestBid = await BidModel.getHighestBid(auction_id);
-      console.log('hello my name is jeff');
-      console.log(currentHighestBid[0]);
-      console.log(bid_amount +" "+ currentHighestBid[0]['bid_amount']);
-
-    // Ensure the bid is higher than the current highest bid
-    if (currentHighestBid != null && bid_amount <= currentHighestBid[0]['bid_amount']) {
-      return res.status(400).json({ error: 'Bid must be higher than the current highest bid.' });
-    }
-    console.log(currentHighestBid.rows[0]);
+  
+      // Fetch the current highest bid
+      const currentHighestBid = (await BidModel.getHighestBid(auction_id))[0];
+  
+      if (currentHighestBid && currentHighestBid.length > 0) {
+        const highestBidAmount = currentHighestBid[0].bid_amount;
+        if (bid_amount <= highestBidAmount) {
+          return res.status(400).json({ error: 'Bid must be higher than the current highest bid.' });
+        }
+      }
+  
+      // Create the bid
       const bidData = {
         ...req.body,
         buyer_id: user_id,
         bid_amount: bid_amount,
-        auction_id: auction_id        
+        auction_id: auction_id
       };
       const bid = await BidModel.create(bidData);
       res.status(201).json(bid);
+  
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      console.error('Error placing bid:', error);
+      res.status(500).json({ error: error.message });
     }
   }
+  
 
   static async getHighestBid(req, res, ) {
     try {

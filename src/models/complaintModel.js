@@ -28,7 +28,7 @@ class ComplaintModel {
   }
 
   // Delete a complaint by ID
-  static async dresolveComplaint(complaintId) {
+  static async resolveComplaint(complaintId) {
     const query = `update table complaints set resolved = 't' WHERE complaint_id = $1 RETURNING *;`;
     const result = await pool.query(query, [complaintId]);
     return result.rows[0];

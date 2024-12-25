@@ -60,6 +60,21 @@ class ComplaintController {
       res.status(500).json({ error: 'Internal server error' });
     }
   }
+
+  static async resolveComplaint(req, res) {
+    const { id } = req.params;
+
+    try {
+      const resolvedComplaint = await ComplaintModel.resolveComplaint(id);
+      if (!resolvedComplaint) {
+        return res.status(404).json({ error: 'Complaint not found' });
+      }
+      res.status(200).json({ message: 'Complaint resolved successfully', complaint: resolvedComplaint });
+    } catch (error) {
+      console.error('Error resolving complaint:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 }
 
 module.exports = ComplaintController;

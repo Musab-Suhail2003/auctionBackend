@@ -57,7 +57,7 @@ class escrowModel {
     }
   }
   
-  static async releasePayment(auction_id) {
+  static async releasePayment(item_id) {
     const client = await pool.connect();
   
     try {
@@ -71,14 +71,14 @@ class escrowModel {
         FROM escrow e
         JOIN auctions a ON a.auction_id = e.auction_id
         JOIN items i ON i.item_id = a.item_id
-        WHERE e.auction_id = $1
+        WHERE e.item_id = $1
         RETURNING 
           e.amount, 
           e.escrow_id, 
           i.user_id AS seller_id;
 
       `;
-      const paymentResult = await client.query(paymentQuery, [auction_id]);
+      const paymentResult = await client.query(paymentQuery, [item_id]);
   
       // Log the results for debugging
       console.log('Payment Result:', {
@@ -138,6 +138,59 @@ class escrowModel {
       client.release();
     }
   }
+
+  static async reverseEscrowTransfer(auction_id) {
+    const client = await pool.connect();
+
+    try {
+        // Start the transaction
+        await client.query('BEGIN');
+
+        // Get escrow details
+        const escrowQuery = `
+            SELECT amount, buyer_id, seller_id
+            FROM escrow
+            WHERE auction_id = $1
+            AND completed = 'f'
+        `;
+        const escrowResult = await client.query(escrowQuery, [auction_id]);
+
+        if (escrowResult.rows.length === 0) {
+            throw new Error(`No pending escrow found for auction ${auction_id}`);
+        }
+
+        const { amount, buyer_id, seller_id } = escrowResult.rows[0];
+
+        // Reverse the transfer by updating the buyer's and seller's wallets
+        const reverseWalletQuery = `
+            UPDATE users
+            SET wallet = wallet + $2
+            WHERE user_id = $1
+        `;
+        await client.query(reverseWalletQuery, [buyer_id, amount]);
+
+        // Delete the escrow record
+        const deleteEscrowQuery = `
+          DELETE FROM escrow
+          WHERE auction_id = $1
+          AND completed = 'f'
+        `;
+        await client.query(deleteEscrowQuery, [auction_id]);
+
+        // Commit the transaction
+        await client.query('COMMIT');
+
+        return { message: 'Escrow transfer reversed successfully' };
+    } catch (error) {
+        // Rollback the transaction in case of error
+        await client.query('ROLLBACK');
+        console.error('Error in reverseEscrowTransfer:', error);
+        throw error;
+    } finally {
+        // Always release the client back to the pool
+        client.release();
+    }
+}
 
   static async getEscrowStatus(){
 

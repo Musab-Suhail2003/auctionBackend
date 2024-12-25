@@ -14,10 +14,12 @@ const storage = multer.diskStorage({
     },
 });
 
+
+
 const upload = multer({ storage });
 
 // API to handle multiple file uploads
-router.post('/upload', upload.array('pictures', 10), async (req, res) => {
+router.post('/upload', upload.array('images', 10), async (req, res) => {
     const { image_name, item_id } = req.body;
 
     if (!req.files || req.files.length === 0) {
@@ -30,15 +32,17 @@ router.post('/upload', upload.array('pictures', 10), async (req, res) => {
         // Insert each file into the database
         const fileData = req.files.map(file => [item_id, file.path]);
         const query = `
-            INSERT INTO pictures (image_name item_id, image_url)
+            INSERT INTO images (image_name, item_id, image_url)
             VALUES ($1, $2, $3) RETURNING *;
         `;
 
-        const insertedPictures = [];
-        for (const file of req.files) {
-            const result = await client.query(query, [image_name, item_id, file.path]);
-            insertedPictures.push(result.rows[0]);
-        }
+        const insertedPictures = await Promise.all(
+            req.files.map(file =>
+                client.query(query, [file.originalname, item_id, file.path])
+                    .then(result => result.rows[0])
+            )
+        );
+
 
         client.release();
 
@@ -53,7 +57,7 @@ router.get('/pictures/:entity_id', async (req, res) => {
   const { entity_id } = req.params;
 
   try {
-      const result = await pool.query('SELECT * FROM pictures WHERE item_id = $1', [entity_id]);
+      const result = await pool.query('SELECT * FROM images WHERE item_id = $1', [entity_id]);
       res.json(result.rows);
   } catch (err) {
       console.error(err);

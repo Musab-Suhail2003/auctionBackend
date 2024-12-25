@@ -22,10 +22,24 @@ class UserModel {
 
     async findById(user_id) {
         console.log(`inside findbyid ${user_id}`);
-        return (await pool.query(
-            `SELECT user_id, user_name, email, wallet, avg_rating, verification, created_at FROM users WHERE user_id = $1`,
-            [user_id]
-        )).rows[0];
+        return (
+            await pool.query(
+                `SELECT user_id, user_name, email, wallet, avg_rating, verification, created_at FROM users WHERE user_id = $1`,
+                [user_id]
+            )
+        ).rows[0];
+    }
+
+    async verify(user_id){
+        console.log(`verified user id: ${user_id}`);
+        return (
+            await pool.query(
+                `update users
+                set verification = 'verified'
+                where user_id = $1`,
+                [user_id]
+            )
+        ).rows[0];
     }
     
 
@@ -87,6 +101,12 @@ class UserModel {
     static async addwallet(user_id, amount) {
         const query = 'UPDATE users SET wallet = wallet + $1 WHERE user_id = $2 RETURNING *;';
         const result = await pool.query(query, [amount, user_id]);
+        return result.rows[0];
+    }
+
+    static async addrating(user_id, rating) {
+        const query = 'UPDATE ratings SET rating_value = rating WHERE seller_id = $2 RETURNING *;';
+        const result = await pool.query(query, [rating, user_id]);
         return result.rows[0];
     }
 }

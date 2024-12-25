@@ -7,7 +7,6 @@ const auctionRoutes = require('./src/routes/auctionRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const errorHandler = require('./src/middleware/errorHandler');
 const bidRoutes = require('./src/routes/bidRoutes');
-const imageRoutes = require('./src/routes/imageRoute');
 const complaintRoutes = require('./src/routes/complaintRoute');
 const verificationRoute = require('./src/routes/verificationRoutes');
 const fileUpload = require('express-fileupload');
@@ -16,6 +15,9 @@ const stripe = Stripe('sk_test_51QQR6DFw48wdxghHTI1X7vo1RhF59wRTM2d0IVWCx8q4qjNX
 const cron = require('node-cron');
 const pool = require('./config/database'); // Your database pool
 const auctionModel = require('./src/models/auctionModel');  // Your auction model
+const uploadRouter = require('./src/middleware/upload');
+const adminRoutes = require('./src/routes/adminRoutes');
+
 const app = express();
 const port = 3000;
 
@@ -27,7 +29,7 @@ cron.schedule('* * * * *', async () => {
     // Fetch all auctions that are open and have passed their end_time
     const query = `
       SELECT auction_id FROM auctions
-      WHERE status = 'open' AND end_time < NOW()
+      WHERE status = 'open' AND end_time < current_timestamp
     `;
     const res = await pool.query(query);
 
@@ -51,9 +53,11 @@ app.use('/items', itemRoutes);
 app.use('/auctions', auctionRoutes);
 app.use('/users', userRoutes);
 app.use('/bids', bidRoutes);
-app.use('/images', imageRoutes);
 app.use('/complaints', complaintRoutes);
 app.use('/verification', verificationRoute);
+app.use('/upload', uploadRouter);
+app.use('/admin', adminRoutes);
+
 
 app.post('/create-payment-intent', async (req, res) => {
   const { amount, currency } = req.body; // Amount in smallest currency unit (e.g., cents for USD)

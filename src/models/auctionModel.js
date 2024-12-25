@@ -16,7 +16,7 @@ class AuctionModel {
   
     static async findActive() {
       const query = `
-        SELECT a.*, i.item_name, i.min_bid, i.description, u.user_id
+        SELECT a.*, i.item_name, i.min_bid, i.sold, i.description, u.user_id, u.avg_rating
         FROM auctions a
         JOIN items i ON a.item_id = i.item_id
         JOIN users u on i.user_id = u.user_id
@@ -42,10 +42,11 @@ class AuctionModel {
       if(res0['status'] == 'closed'){
         return;
       }
+      console.log(auction_id + ` auction id `)
       const res = await bidModel.getHighestBid(auction_id);
-      const winning_bid_id = res != null 
-      ? res[0]['bid_id']
-      : null;
+      console.log(res)
+      const winning_bid_id = res[0] != null 
+      ? res[0]['bid_id'] : null;
       
       
       console.log(res);

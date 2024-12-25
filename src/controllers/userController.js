@@ -138,6 +138,32 @@ class UserController {
       res.status(500).json({ error: 'Failed to update wallet' });
     }
   }
+
+  static async updateRating(req, res) {
+    try {
+      const { rating, user_id } = req.body;
+      console.log(rating + " " + user_id);
+      const result = await UserController.updateRating([rating, user_id]);
+      
+      res.json({...result.rows[0],
+        message: 'rating updated successfully'      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update rating' });
+    }
+  }
+
+  static async verify(req, res) {
+    try {
+      const { user_id } = req.body;
+      console.log(user_id);
+      const result = await UserModel.verify(user_id);
+      
+      res.json({...result.rows[0],
+        message: 'User verified successfully'      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to verify user' });
+    }
+  }
 }
 
 module.exports = UserController;
